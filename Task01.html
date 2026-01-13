@@ -2,7 +2,7 @@
 <html lang="zh-Hans">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <title>贪吃蛇 Snake</title>
   <style>
     :root{
@@ -29,10 +29,11 @@
         linear-gradient(180deg, var(--bg1), var(--bg2));
       color:#fff;
       font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "PingFang SC", "Microsoft YaHei", sans-serif;
+      padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
     }
 
     .app{
-      width:min(540px, 92vw);
+      width:min(560px, 92vw);
       padding:18px;
       border:1px solid var(--line);
       border-radius:18px;
@@ -43,7 +44,7 @@
 
     .top{
       display:flex;
-      align-items:center;
+      align-items:flex-start;
       justify-content:space-between;
       gap:12px;
       padding:6px 6px 14px;
@@ -90,7 +91,7 @@
       border:1px solid var(--line);
       border-radius:12px;
       padding:8px 10px;
-      min-width:100px;
+      min-width:106px;
       background: rgba(0,0,0,.14);
     }
     .stat .k{
@@ -118,13 +119,14 @@
       background:
         linear-gradient(0deg, rgba(255,255,255,.03), rgba(255,255,255,.03)),
         radial-gradient(900px 500px at 50% 0%, rgba(125,211,252,.08), transparent 60%);
+      touch-action: none; /* iPhone：避免滑动时页面跟着滚动 */
     }
 
     .controls{
       display:flex;
-      gap:10px;
+      gap:12px;
       margin-top:14px;
-      align-items:center;
+      align-items:flex-start;
       justify-content:space-between;
       flex-wrap:wrap;
     }
@@ -133,6 +135,7 @@
       display:flex;
       gap:10px;
       flex-wrap:wrap;
+      align-items:center;
     }
 
     button{
@@ -150,6 +153,7 @@
       align-items:center;
       gap:8px;
       user-select:none;
+      -webkit-tap-highlight-color: transparent;
     }
     button:hover{ filter: brightness(1.03); }
     button:active{ transform: translateY(1px); }
@@ -176,6 +180,7 @@
       gap:8px;
       align-items:center;
       flex-wrap:wrap;
+      max-width: 320px;
     }
     kbd{
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
@@ -229,6 +234,45 @@
       gap:10px;
       flex-wrap:wrap;
     }
+
+    /* ===== 手机方向键（窄屏显示） ===== */
+    .touch-pad{
+      width: 180px;
+      height: 180px;
+      display:none;
+      border:1px solid rgba(255,255,255,.12);
+      border-radius:16px;
+      background: rgba(0,0,0,.14);
+      position: relative;
+      flex: 0 0 auto;
+      margin-left:auto;
+    }
+    .tp{
+      position:absolute;
+      width:58px;
+      height:58px;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.14);
+      color:#fff;
+      font-size:18px;
+      font-weight:800;
+      box-shadow:none;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .tp:active{ transform: translateY(1px); }
+    .tp.up{ left:50%; top:10px; transform: translateX(-50%); }
+    .tp.down{ left:50%; bottom:10px; transform: translateX(-50%); }
+    .tp.left{ top:50%; left:10px; transform: translateY(-50%); }
+    .tp.right{ top:50%; right:10px; transform: translateY(-50%); }
+
+    @media (max-width: 520px){
+      .touch-pad{ display:block; }
+      .hint{ max-width: 100%; }
+    }
   </style>
 </head>
 <body>
@@ -236,7 +280,7 @@
     <div class="top">
       <div class="title">
         <h1>贪吃蛇 <span class="badge">Snake</span></h1>
-        <p class="subtitle">方向键移动，吃食物变长；撞墙或撞到自己会结束</p>
+        <p class="subtitle">电脑：方向键；手机：滑动或点方向键。撞墙/撞自己结束。</p>
       </div>
 
       <div class="stats">
@@ -257,7 +301,7 @@
       <div class="overlay" id="overlay">
         <div class="panel">
           <h2 id="overTitle">准备开始</h2>
-          <p id="overText">点击“开始”或按任意方向键开始。</p>
+          <p id="overText">点击“开始”或用方向键/滑动开始。</p>
           <div class="row">
             <button class="primary" id="overlayStart">▶ 开始</button>
             <button class="ghost" id="overlayRestart">↻ 重新开始</button>
@@ -270,18 +314,25 @@
       <div class="btns">
         <button class="primary" id="startBtn">▶ 开始</button>
         <button class="ghost" id="restartBtn">↻ 重新开始</button>
+
+        <div class="hint">
+          <span>电脑：</span><kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd>
+          <span>手机：</span><kbd>滑动</kbd><span>/</span><kbd>点按方向键</kbd>
+        </div>
       </div>
-      <div class="hint">
-        <span>操作：</span>
-        <kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd>
-        <span>（游戏进行中可直接用方向键改变方向）</span>
+
+      <!-- 手机方向键 -->
+      <div class="touch-pad" aria-label="Touch Controls">
+        <button class="tp up"    data-dir="up"    aria-label="Up">↑</button>
+        <button class="tp left"  data-dir="left"  aria-label="Left">←</button>
+        <button class="tp right" data-dir="right" aria-label="Right">→</button>
+        <button class="tp down"  data-dir="down"  aria-label="Down">↓</button>
       </div>
     </div>
   </div>
 
   <script>
     (() => {
-      // ===== 基础配置 =====
       const canvas = document.getElementById("game");
       const ctx = canvas.getContext("2d");
 
@@ -297,42 +348,61 @@
       const overlayStart = document.getElementById("overlayStart");
       const overlayRestart = document.getElementById("overlayRestart");
 
-      const GRID = 24;                 // 24x24
-      const CELL = canvas.width / GRID; // 480/24 = 20
+      const GRID = 24;                  // 24x24
+      const CELL = canvas.width / GRID; // 480/24=20
       const TICK_MS = 120;              // 速度（越小越快）
 
-      // ===== 游戏状态 =====
       let snake, dir, nextDir, food, score;
       let timer = null;
       let state = "idle"; // idle | running | over
 
-      function setStatus(text){
-        statusEl.textContent = text;
-      }
-
-      function setScore(v){
-        scoreEl.textContent = v;
-      }
+      function setStatus(text){ statusEl.textContent = text; }
+      function setScore(v){ scoreEl.textContent = v; }
 
       function showOverlay(title, text){
         overTitle.textContent = title;
         overText.textContent = text;
         overlay.classList.add("show");
       }
+      function hideOverlay(){ overlay.classList.remove("show"); }
 
-      function hideOverlay(){
-        overlay.classList.remove("show");
+      function stopLoop(){
+        if (timer){
+          clearInterval(timer);
+          timer = null;
+        }
+      }
+      function startLoop(){
+        stopLoop();
+        timer = setInterval(tick, TICK_MS);
+      }
+
+      function randInt(min, max){ return Math.floor(Math.random() * (max - min)) + min; }
+      function sameCell(a, b){ return a.x === b.x && a.y === b.y; }
+      function isSnakeCell(cell){ return snake.some(s => sameCell(s, cell)); }
+
+      function spawnFood(){
+        let f;
+        do { f = {x: randInt(0, GRID), y: randInt(0, GRID)}; }
+        while (isSnakeCell(f));
+        return f;
+      }
+
+      function updateButtons(){
+        startBtn.disabled = (state === "running");
+        restartBtn.disabled = false;
+        overlayStart.disabled = (state === "running");
+        overlayRestart.disabled = false;
       }
 
       function resetGame(){
         score = 0;
         setScore(score);
 
-        // 初始蛇（长度3）
         const startX = Math.floor(GRID / 2);
         const startY = Math.floor(GRID / 2);
         snake = [
-          {x: startX, y: startY},
+          {x: startX,     y: startY},
           {x: startX - 1, y: startY},
           {x: startX - 2, y: startY},
         ];
@@ -346,26 +416,24 @@
 
         stopLoop();
         draw();
-        showOverlay("准备开始", "点击“开始”或按任意方向键开始。");
+        showOverlay("准备开始", "点击“开始”或用方向键/滑动开始。");
         updateButtons();
       }
 
       function startGame(){
         if (state === "running") return;
-        if (state === "over" || state === "idle") {
-          state = "running";
-          setStatus("进行中");
-          hideOverlay();
-          startLoop();
-          updateButtons();
-        }
+        state = "running";
+        setStatus("进行中");
+        hideOverlay();
+        startLoop();
+        updateButtons();
       }
 
       function gameOver(){
         state = "over";
         setStatus("已结束");
         stopLoop();
-        draw(); // 画一帧定格
+        draw();
         showOverlay("游戏结束", `本局得分：${score}。点击“重新开始”再来一局！`);
         updateButtons();
       }
@@ -375,79 +443,122 @@
         startGame();
       }
 
-      function updateButtons(){
-        startBtn.disabled = (state === "running");
-        restartBtn.disabled = false;
+      // ===== 输入：设置方向（禁止立即反向）=====
+      function setDirection(dx, dy){
+        if (state !== "running") startGame();
+        if (state !== "running") return;
 
-        overlayStart.disabled = (state === "running");
-        overlayRestart.disabled = false;
+        // 禁止立即反向（避免一按就撞自己）
+        if (dx === -dir.x && dy === -dir.y) return;
+
+        nextDir = {x: dx, y: dy};
       }
 
-      // ===== 工具函数 =====
-      function randInt(min, max){
-        // [min, max)
-        return Math.floor(Math.random() * (max - min)) + min;
-      }
-
-      function sameCell(a, b){
-        return a.x === b.x && a.y === b.y;
-      }
-
-      function isSnakeCell(cell){
-        return snake.some(s => sameCell(s, cell));
-      }
-
-      function spawnFood(){
-        // 避免食物刷在蛇身上
-        let f;
-        do {
-          f = {x: randInt(0, GRID), y: randInt(0, GRID)};
-        } while (isSnakeCell(f));
-        return f;
-      }
-
-      function startLoop(){
-        stopLoop();
-        timer = setInterval(tick, TICK_MS);
-      }
-
-      function stopLoop(){
-        if (timer){
-          clearInterval(timer);
-          timer = null;
+      // ===== 电脑：方向键 =====
+      window.addEventListener("keydown", (e) => {
+        const key = e.key;
+        if (["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(key)){
+          e.preventDefault();
         }
+        switch (key){
+          case "ArrowUp":    setDirection(0, -1); break;
+          case "ArrowDown":  setDirection(0, 1);  break;
+          case "ArrowLeft":  setDirection(-1, 0); break;
+          case "ArrowRight": setDirection(1, 0);  break;
+        }
+      }, {passive:false});
+
+      // ===== 手机：屏幕方向键 =====
+      const pad = document.querySelector(".touch-pad");
+      if (pad){
+        pad.addEventListener("touchstart", (e) => {
+          const btn = e.target.closest("button[data-dir]");
+          if (!btn) return;
+          e.preventDefault();
+          const d = btn.dataset.dir;
+          if (d === "up") setDirection(0, -1);
+          if (d === "down") setDirection(0, 1);
+          if (d === "left") setDirection(-1, 0);
+          if (d === "right") setDirection(1, 0);
+        }, { passive:false });
+
+        // 也支持点击（部分浏览器/调试用）
+        pad.addEventListener("click", (e) => {
+          const btn = e.target.closest("button[data-dir]");
+          if (!btn) return;
+          const d = btn.dataset.dir;
+          if (d === "up") setDirection(0, -1);
+          if (d === "down") setDirection(0, 1);
+          if (d === "left") setDirection(-1, 0);
+          if (d === "right") setDirection(1, 0);
+        });
       }
 
-      // ===== 核心逻辑：每一帧更新 =====
+      // ===== 手机：在画布上滑动控制 =====
+      let sx = 0, sy = 0;
+      const SWIPE_MIN = 18; // 最小滑动距离（像素），避免误触
+
+      canvas.addEventListener("touchstart", (e) => {
+        const t = e.touches[0];
+        sx = t.clientX;
+        sy = t.clientY;
+      }, { passive:true });
+
+      canvas.addEventListener("touchmove", (e) => {
+        // 防止页面跟着滚动
+        e.preventDefault();
+      }, { passive:false });
+
+      canvas.addEventListener("touchend", (e) => {
+        const t = (e.changedTouches && e.changedTouches[0]) ? e.changedTouches[0] : null;
+        if (!t) return;
+
+        const dx = t.clientX - sx;
+        const dy = t.clientY - sy;
+
+        if (Math.abs(dx) < SWIPE_MIN && Math.abs(dy) < SWIPE_MIN) return;
+
+        if (Math.abs(dx) > Math.abs(dy)){
+          if (dx > 0) setDirection(1, 0);
+          else setDirection(-1, 0);
+        } else {
+          if (dy > 0) setDirection(0, 1);
+          else setDirection(0, -1);
+        }
+      }, { passive:true });
+
+      // ===== 按钮 =====
+      startBtn.addEventListener("click", startGame);
+      restartBtn.addEventListener("click", restartGame);
+      overlayStart.addEventListener("click", startGame);
+      overlayRestart.addEventListener("click", restartGame);
+
+      // ===== 游戏一帧 =====
       function tick(){
-        // 应用下一方向（避免一帧内多次改变导致“反向钻进自己”）
         dir = nextDir;
 
         const head = snake[0];
         const newHead = {x: head.x + dir.x, y: head.y + dir.y};
 
-        // 1) 撞墙
+        // 撞墙
         if (newHead.x < 0 || newHead.x >= GRID || newHead.y < 0 || newHead.y >= GRID){
           return gameOver();
         }
 
-        // 2) 撞到自己（注意：如果不吃食物，尾巴会移动，所以判断时允许撞到“将要被移走的尾巴”）
+        // 撞自己：不吃食物时尾巴会移动，允许撞到“将要移走的尾巴”
         const willEat = sameCell(newHead, food);
         const bodyToCheck = willEat ? snake : snake.slice(0, -1);
         if (bodyToCheck.some(s => sameCell(s, newHead))){
           return gameOver();
         }
 
-        // 移动：头插入
         snake.unshift(newHead);
 
-        // 3) 吃食物：加分、变长、刷新食物
         if (willEat){
           score += 10;
           setScore(score);
           food = spawnFood();
         } else {
-          // 不吃就移除尾巴
           snake.pop();
         }
 
@@ -456,10 +567,9 @@
 
       // ===== 绘制 =====
       function draw(){
-        // 背景
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        // 轻网格（很淡）
+        // 网格（淡）
         ctx.save();
         ctx.globalAlpha = 0.08;
         ctx.strokeStyle = "#ffffff";
@@ -496,7 +606,7 @@
       }
 
       function drawCell(x, y, color, glow=false){
-        const pad = 2; // 让格子更“圆润”
+        const pad = 2;
         const px = x * CELL + pad;
         const py = y * CELL + pad;
         const w = CELL - pad * 2;
@@ -511,7 +621,6 @@
         roundRect(ctx, px, py, w, w, r);
         ctx.fill();
 
-        // 轻描边
         ctx.shadowBlur = 0;
         ctx.strokeStyle = "rgba(255,255,255,.16)";
         ctx.lineWidth = 1;
@@ -530,39 +639,6 @@
         ctx.arcTo(x, y, x + w, y, rr);
         ctx.closePath();
       }
-
-      // ===== 输入：方向键控制 =====
-      function setDirection(dx, dy){
-        if (state !== "running"){
-          // 按方向键也可以开始
-          startGame();
-        }
-        if (state !== "running") return;
-
-        // 禁止“立即反向”（避免一按就撞自己）
-        if (dx === -dir.x && dy === -dir.y) return;
-
-        nextDir = {x: dx, y: dy};
-      }
-
-      window.addEventListener("keydown", (e) => {
-        const key = e.key;
-        if (["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(key)){
-          e.preventDefault(); // 防止页面滚动
-        }
-        switch (key){
-          case "ArrowUp":    setDirection(0, -1); break;
-          case "ArrowDown":  setDirection(0, 1);  break;
-          case "ArrowLeft":  setDirection(-1, 0); break;
-          case "ArrowRight": setDirection(1, 0);  break;
-        }
-      }, {passive:false});
-
-      // ===== 按钮 =====
-      startBtn.addEventListener("click", startGame);
-      restartBtn.addEventListener("click", restartGame);
-      overlayStart.addEventListener("click", startGame);
-      overlayRestart.addEventListener("click", restartGame);
 
       // 初始
       resetGame();
